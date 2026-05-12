@@ -1,4 +1,0 @@
-services:
- - type: static_site
- name:CircuitVision-Debugger # ⚠⚠ 必须修改：换成你⾃⼰的应⽤名 buildCommand: "" # 纯静态⻚⾯不需要构建，留空即可
- staticPublishPath: . # 发布⽬录设为当前根⽬录
