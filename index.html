@@ -6,13 +6,26 @@
   <meta name="description" content="CircuitVision Debugger - AI智能PCB电路板故障检测与排错系统">
   <title>CircuitVision Debugger | AI PCB故障检测</title>
 
-  <!-- Tailwind CSS (CDN 国内镜像) -->
+  <!-- 自动适配CDN基路径：通过 jsdelivr 访问时自动切换资源引用路径 -->
+  <script>
+    (function(){
+      var host = window.location.hostname;
+      // 检测是否通过 CDN 访问
+      if (host.includes('jsdelivr') || host.includes('statically') || host.includes('fastly')) {
+        var base = document.createElement('base');
+        base.href = 'https://cdn.jsdelivr.net/gh/smile-hart/CircuitVision-Debugger@main/';
+        document.head.appendChild(base);
+      }
+    })();
+  </script>
+
+  <!-- Tailwind CSS (Play CDN) -->
   <script src="https://cdn.tailwindcss.com">
   </script>
-  <!-- Font Awesome 6 图标库 -->
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-  <!-- Google Fonts Inter -->
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <!-- Font Awesome 6 图标库 (国内可访问) -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.7.2/css/all.min.css">
+  <!-- Google Fonts Inter (国内镜像) -->
+  <link href="https://fonts.loli.net/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
   <!-- 自定义样式 -->
   <link rel="stylesheet" href="css/style.css">
 
