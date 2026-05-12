@@ -1,0 +1,557 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="CircuitVision Debugger - AI智能PCB电路板故障检测与排错系统">
+  <title>CircuitVision Debugger | AI PCB故障检测</title>
+
+  <!-- Tailwind CSS (CDN 国内镜像) -->
+  <script src="https://cdn.tailwindcss.com">
+  </script>
+  <!-- Font Awesome 6 图标库 -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <!-- Google Fonts Inter -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <!-- 自定义样式 -->
+  <link rel="stylesheet" href="css/style.css">
+
+  <!-- Tailwind 自定义配置 -->
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            accent: { DEFAULT: '#00d4ff', 50: '#e6faff', 100: '#b3f0ff', 200: '#80e6ff', 300: '#4ddbff', 400: '#1ad1ff', 500: '#00d4ff', 600: '#00a9cc', 700: '#007f99', 800: '#005566', 900: '#002b33' },
+            cyber: { DEFAULT: '#7c3aed', 50: '#f3e8ff', 100: '#dac5ff', 200: '#b794f7', 300: '#9b6eef', 400: '#7c3aed', 500: '#6d28d9', 600: '#5b21b6', 700: '#4c1d95', 800: '#3b0f6e', 900: '#2a0847' },
+          },
+          fontFamily: { sans: ['Inter', 'system-ui', 'sans-serif'] },
+        }
+      }
+    }
+  </script>
+</head>
+<body class="bg-[#080c1a] text-gray-100 font-sans min-h-screen overflow-x-hidden">
+
+  <!-- ============================================================ -->
+  <!-- 背景粒子/网格效果 -->
+  <!-- ============================================================ -->
+  <div id="bg-grid" class="fixed inset-0 pointer-events-none z-0 opacity-20"
+    style="background-image: linear-gradient(rgba(0,212,255,0.05) 1px, transparent 1px), linear-gradient(90deg, rgba(0,212,255,0.05) 1px, transparent 1px);
+           background-size: 60px 60px;">
+  </div>
+  <div id="bg-glow" class="fixed top-[-200px] right-[-200px] w-[600px] h-[600px] rounded-full pointer-events-none z-0 opacity-10"
+    style="background: radial-gradient(circle, rgba(0,212,255,0.3) 0%, transparent 70%);">
+  </div>
+  <div id="bg-glow2" class="fixed bottom-[-200px] left-[-200px] w-[500px] h-[500px] rounded-full pointer-events-none z-0 opacity-10"
+    style="background: radial-gradient(circle, rgba(124,58,237,0.3) 0%, transparent 70%);">
+  </div>
+
+  <!-- ============================================================ -->
+  <!-- 顶部导航栏 -->
+  <!-- ============================================================ -->
+  <header class="relative z-20 border-b border-white/5 backdrop-blur-xl bg-[#080c1a]/80 sticky top-0">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex items-center justify-between h-16">
+        <!-- Logo -->
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-accent to-cyber flex items-center justify-center shadow-lg shadow-accent/20">
+            <i class="fa-solid fa-microchip text-white text-lg"></i>
+          </div>
+          <div>
+            <h1 class="text-lg font-bold tracking-tight">
+              <span class="text-white">CircuitVision</span>
+              <span class="text-accent"> Debugger</span>
+            </h1>
+            <p class="text-[10px] text-gray-500 tracking-widest uppercase -mt-0.5">AI PCB 智能故障检测系统</p>
+          </div>
+        </div>
+        <!-- 右侧操作区 -->
+        <div class="flex items-center gap-2 sm:gap-3">
+          <button id="btn-settings" class="nav-btn" title="API 配置">
+            <i class="fa-solid fa-sliders"></i>
+            <span class="hidden sm:inline text-xs ml-1">API配置</span>
+          </button>
+          <button id="btn-about" class="nav-btn" title="关于项目">
+            <i class="fa-solid fa-info-circle"></i>
+          </button>
+          <a href="https://github.com" target="_blank" class="nav-btn" title="GitHub">
+            <i class="fa-brands fa-github"></i>
+          </a>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- ============================================================ -->
+  <!-- 主内容区域 -->
+  <!-- ============================================================ -->
+  <main class="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
+
+    <!-- 页面标题区 -->
+    <div class="text-center mb-8 animate-fade-in">
+      <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-accent/10 border border-accent/20 text-accent text-xs mb-4">
+        <i class="fa-solid fa-bolt"></i>
+        <span>AI 驱动 · 智能诊断 · 精准高效</span>
+      </div>
+      <h2 class="text-3xl sm:text-4xl font-bold text-white mb-2">
+        PCB 电路板 <span class="text-transparent bg-clip-text bg-gradient-to-r from-accent to-cyber">AI 视觉诊断</span>
+      </h2>
+      <p class="text-gray-500 text-sm max-w-2xl mx-auto">
+        上传PCB实物照片，AI自动识别元器件、检测焊接缺陷、生成故障排查指南
+      </p>
+    </div>
+
+    <!-- ============================================================ -->
+    <!-- 第一步：图片上传区域 -->
+    <!-- ============================================================ -->
+    <section id="section-upload" class="mb-8 animate-slide-up">
+      <div class="glass-card rounded-2xl p-6 sm:p-8">
+        <!-- 上传区域 -->
+        <div id="drop-zone"
+          class="relative border-2 border-dashed border-slate-700/60 rounded-xl p-8 sm:p-12 text-center cursor-pointer transition-all duration-300 hover:border-accent/50 hover:bg-accent/[0.02] group"
+          onclick="document.getElementById('file-input').click()">
+
+          <!-- 隐藏的文件输入 -->
+          <input type="file" id="file-input" accept="image/*" class="hidden" multiple>
+
+          <div class="flex flex-col items-center gap-4 pointer-events-none">
+            <!-- 上传图标 -->
+            <div class="w-16 h-16 rounded-2xl bg-gradient-to-br from-accent/20 to-cyber/20 flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
+              <i class="fa-solid fa-cloud-arrow-up text-3xl text-accent"></i>
+            </div>
+            <div>
+              <p class="text-lg font-medium text-white group-hover:text-accent transition-colors">
+                拖拽PCB图片到此处，或 <span class="text-accent underline underline-offset-2">点击选择</span>
+              </p>
+              <p class="text-sm text-gray-500 mt-1">支持 JPG / PNG / WebP / BMP，建议使用高清实物照片</p>
+            </div>
+            <!-- 示例格式标签 -->
+            <div class="flex flex-wrap justify-center gap-2 mt-2">
+              <span class="px-3 py-1 rounded-full bg-slate-800/50 text-gray-400 text-xs border border-slate-700/50"><i class="fa-regular fa-image mr-1"></i>JPG</span>
+              <span class="px-3 py-1 rounded-full bg-slate-800/50 text-gray-400 text-xs border border-slate-700/50"><i class="fa-regular fa-image mr-1"></i>PNG</span>
+              <span class="px-3 py-1 rounded-full bg-slate-800/50 text-gray-400 text-xs border border-slate-700/50"><i class="fa-regular fa-image mr-1"></i>WebP</span>
+              <span class="px-3 py-1 rounded-full bg-slate-800/50 text-gray-400 text-xs border border-slate-700/50"><i class="fa-regular fa-image mr-1"></i>BMP</span>
+            </div>
+          </div>
+
+          <!-- 拖拽高亮遮罩 -->
+          <div id="drop-overlay" class="absolute inset-0 rounded-xl bg-accent/5 border-2 border-accent/40 opacity-0 transition-opacity duration-300 pointer-events-none flex items-center justify-center">
+            <div class="text-center">
+              <i class="fa-solid fa-circle-check text-4xl text-accent mb-2"></i>
+              <p class="text-accent font-semibold">松开上传</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- 上传后的预览区域（初始隐藏） -->
+        <div id="preview-area" class="hidden mt-6">
+          <!-- 操作工具栏 -->
+          <div class="flex flex-wrap items-center justify-between gap-3 mb-4 p-3 rounded-xl bg-slate-900/50 border border-slate-800/50">
+            <div class="flex items-center gap-2">
+              <span id="file-name-display" class="text-sm font-medium text-gray-300 truncate max-w-[200px]"></span>
+              <span id="file-size-display" class="text-xs text-gray-500"></span>
+            </div>
+            <div class="flex items-center gap-2">
+              <button id="btn-analyze" class="px-5 py-2 rounded-xl bg-gradient-to-r from-accent to-cyber text-white text-sm font-semibold shadow-lg shadow-accent/20 hover:shadow-accent/40 transition-all duration-300 disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-2">
+                <i class="fa-solid fa-wand-magic-sparkles"></i>
+                <span>开始AI分析</span>
+              </button>
+              <button id="btn-remove" class="px-3 py-2 rounded-xl bg-slate-800/80 text-gray-400 text-sm hover:bg-red-900/30 hover:text-red-400 transition-all duration-200">
+                <i class="fa-solid fa-trash-can"></i>
+              </button>
+            </div>
+          </div>
+
+          <!-- 图片与标注叠加层 -->
+          <div id="image-viewer" class="relative rounded-xl overflow-hidden bg-slate-900/50 border border-slate-800/50">
+            <!-- 图片容器 -->
+            <div id="image-container" class="relative w-full flex items-center justify-center" style="min-height: 400px;">
+              <img id="preview-image" class="max-w-full max-h-[70vh] object-contain" alt="PCB预览图">
+              <!-- 标注叠加层 -->
+              <div id="annotation-layer" class="absolute inset-0 pointer-events-none">
+                <!-- 动态由JS生成标注框 -->
+              </div>
+              <!-- 缩放控制 -->
+              <div class="absolute bottom-3 right-3 flex items-center gap-2 pointer-events-auto">
+                <button id="btn-zoom-in" class="zoom-btn"><i class="fa-solid fa-plus"></i></button>
+                <span id="zoom-level" class="text-xs text-gray-400 w-8 text-center">100%</span>
+                <button id="btn-zoom-out" class="zoom-btn"><i class="fa-solid fa-minus"></i></button>
+                <button id="btn-zoom-reset" class="zoom-btn"><i class="fa-solid fa-maximize"></i></button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============================================================ -->
+    <!-- 分析进度指示器 -->
+    <!-- ============================================================ -->
+    <div id="analysis-progress" class="hidden mb-8 animate-slide-up">
+      <div class="glass-card rounded-2xl p-8 text-center">
+        <div class="flex flex-col items-center gap-4">
+          <!-- 动画扫描线 -->
+          <div class="relative w-32 h-32">
+            <div class="absolute inset-0 rounded-2xl bg-gradient-to-br from-accent/20 to-cyber/20 animate-pulse-slow"></div>
+            <div class="absolute inset-2 rounded-xl border border-accent/30 flex items-center justify-center overflow-hidden">
+              <i class="fa-solid fa-microchip text-4xl text-accent animate-pulse"></i>
+              <div class="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-transparent via-accent to-transparent animate-scan-line"></div>
+            </div>
+          </div>
+          <div>
+            <h3 class="text-lg font-semibold text-white" id="progress-text">AI 视觉模型加载中...</h3>
+            <p class="text-sm text-gray-500 mt-1" id="progress-subtext">正在初始化检测引擎</p>
+          </div>
+          <!-- 进度条 -->
+          <div class="w-full max-w-md">
+            <div class="h-1.5 rounded-full bg-slate-800 overflow-hidden">
+              <div id="progress-bar" class="h-full rounded-full bg-gradient-to-r from-accent to-cyber transition-all duration-500" style="width: 0%;"></div>
+            </div>
+            <div class="flex justify-between text-xs text-gray-600 mt-1">
+              <span>图像预处理</span>
+              <span>特征提取</span>
+              <span>目标检测</span>
+              <span>缺陷分析</span>
+              <span>完成</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============================================================ -->
+    <!-- 第二步：分析结果展示 -->
+    <!-- ============================================================ -->
+    <div id="results-area" class="hidden">
+
+      <!-- 结果统计概览 -->
+      <section class="mb-6 animate-slide-up">
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
+          <div class="stat-card">
+            <div class="stat-icon bg-accent/10 text-accent"><i class="fa-solid fa-microchip"></i></div>
+            <div class="stat-value"><span id="stat-components">0</span></div>
+            <div class="stat-label">识别元器件</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon bg-red-500/10 text-red-400"><i class="fa-solid fa-triangle-exclamation"></i></div>
+            <div class="stat-value text-red-400"><span id="stat-defects">0</span></div>
+            <div class="stat-label">检测缺陷</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon bg-emerald-500/10 text-emerald-400"><i class="fa-solid fa-circle-check"></i></div>
+            <div class="stat-value text-emerald-400"><span id="stat-health">0</span>%</div>
+            <div class="stat-label">健康指数</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon bg-amber-500/10 text-amber-400"><i class="fa-solid fa-clock"></i></div>
+            <div class="stat-value text-amber-400"><span id="stat-time">0</span>s</div>
+            <div class="stat-label">分析耗时</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 标注结果 & 故障清单 双栏布局 -->
+      <section class="mb-6 animate-slide-up">
+        <div class="grid grid-cols-1 lg:grid-cols-5 gap-4">
+          <!-- 左侧：标注图预览（占3列） -->
+          <div class="lg:col-span-3">
+            <div class="glass-card rounded-2xl p-4 sm:p-5">
+              <div class="flex items-center justify-between mb-4">
+                <h3 class="text-sm font-semibold text-white flex items-center gap-2">
+                  <i class="fa-solid fa-tag text-accent"></i>
+                  检测标注结果
+                </h3>
+                <div class="flex items-center gap-2">
+                  <label class="flex items-center gap-1.5 text-xs text-gray-400 cursor-pointer hover:text-accent transition-colors">
+                    <input type="checkbox" id="toggle-components" checked class="accent-accent">
+                    元器件
+                  </label>
+                  <label class="flex items-center gap-1.5 text-xs text-gray-400 cursor-pointer hover:text-red-400 transition-colors">
+                    <input type="checkbox" id="toggle-defects" checked class="accent-red-500">
+                    缺陷
+                  </label>
+                </div>
+              </div>
+              <!-- 带标注的结果图 -->
+              <div class="relative rounded-xl overflow-hidden bg-slate-900/80 border border-slate-800/50">
+                <div class="relative w-full flex items-center justify-center" style="min-height: 300px;">
+                  <img id="result-image" class="max-w-full max-h-[60vh] object-contain" alt="检测结果">
+                  <div id="result-annotation-layer" class="absolute inset-0 pointer-events-none">
+                    <!-- 由JS生成最终标注 -->
+                  </div>
+                </div>
+              </div>
+              <!-- 图例 -->
+              <div class="flex flex-wrap items-center gap-4 mt-3 text-xs text-gray-400">
+                <span class="flex items-center gap-1.5">
+                  <span class="w-3 h-3 rounded-sm border-2 border-accent bg-accent/20"></span> 元器件
+                </span>
+                <span class="flex items-center gap-1.5">
+                  <span class="w-3 h-3 rounded-sm border-2 border-red-400 bg-red-500/20"></span> 故障缺陷
+                </span>
+                <span class="flex items-center gap-1.5">
+                  <span class="w-3 h-3 rounded-sm border-2 border-amber-400 bg-amber-500/20"></span> 警告
+                </span>
+                <span class="flex items-center gap-1.5">
+                  <span class="w-3 h-3 rounded-sm border-2 border-emerald-400 bg-emerald-500/20"></span> 正常
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <!-- 右侧：快速信息面板（占2列） -->
+          <div class="lg:col-span-2 space-y-4">
+            <!-- 元器件清单 -->
+            <div class="glass-card rounded-2xl p-4 sm:p-5">
+              <h3 class="text-sm font-semibold text-white flex items-center gap-2 mb-3">
+                <i class="fa-solid fa-list text-accent"></i>
+                元器件清单
+                <span id="component-count-badge" class="ml-auto text-xs bg-slate-800 text-gray-400 px-2 py-0.5 rounded-full"></span>
+              </h3>
+              <div id="component-list" class="space-y-1.5 max-h-48 overflow-y-auto custom-scrollbar pr-1">
+                <!-- 动态JS生成 -->
+              </div>
+            </div>
+
+            <!-- 故障清单 -->
+            <div class="glass-card rounded-2xl p-4 sm:p-5">
+              <h3 class="text-sm font-semibold text-white flex items-center gap-2 mb-3">
+                <i class="fa-solid fa-bug text-red-400"></i>
+                故障清单
+                <span id="defect-count-badge" class="ml-auto text-xs bg-red-900/30 text-red-400 px-2 py-0.5 rounded-full"></span>
+              </h3>
+              <div id="defect-list" class="space-y-2 max-h-64 overflow-y-auto custom-scrollbar pr-1">
+                <!-- 动态JS生成 -->
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 详细分析报告 + 维修建议 -->
+      <section class="mb-8 animate-slide-up">
+        <div class="glass-card rounded-2xl p-5 sm:p-6">
+          <!-- 选项卡 -->
+          <div class="flex border-b border-slate-800/80 mb-5">
+            <button class="report-tab active" data-tab="repair">
+              <i class="fa-solid fa-wrench"></i> 故障排查与维修建议
+            </button>
+            <button class="report-tab" data-tab="report">
+              <i class="fa-solid fa-file-lines"></i> 详细分析报告
+            </button>
+            <button class="report-tab" data-tab="export">
+              <i class="fa-solid fa-download"></i> 导出与分享
+            </button>
+          </div>
+
+          <!-- 维修建议面板 -->
+          <div id="tab-repair" class="tab-content active">
+            <div id="repair-content" class="space-y-4">
+              <!-- 由JS动态生成 -->
+            </div>
+          </div>
+
+          <!-- 详细报告面板 -->
+          <div id="tab-report" class="tab-content hidden">
+            <div id="report-content" class="space-y-3 text-sm text-gray-300">
+              <!-- 由JS动态生成 -->
+            </div>
+          </div>
+
+          <!-- 导出面板 -->
+          <div id="tab-export" class="tab-content hidden">
+            <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+              <button class="export-btn" data-format="json">
+                <i class="fa-solid fa-code text-accent"></i>
+                <span>JSON 数据</span>
+              </button>
+              <button class="export-btn" data-format="csv">
+                <i class="fa-solid fa-table text-emerald-400"></i>
+                <span>CSV 表格</span>
+              </button>
+              <button class="export-btn" data-format="report">
+                <i class="fa-solid fa-file-pdf text-red-400"></i>
+                <span>HTML 报告</span>
+              </button>
+              <button class="export-btn" data-format="image">
+                <i class="fa-solid fa-image text-purple-400"></i>
+                <span>标注截图</span>
+              </button>
+            </div>
+            <div id="export-status" class="mt-3 text-sm text-gray-500 text-center"></div>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <!-- ============================================================ -->
+    <!-- 空状态（未上传时显示） -->
+    <!-- ============================================================ -->
+    <div id="empty-state" class="text-center py-12 animate-fade-in">
+      <div class="inline-flex items-center justify-center w-20 h-20 rounded-3xl bg-slate-800/50 mb-4">
+        <i class="fa-solid fa-circuit-board text-3xl text-gray-600"></i>
+      </div>
+      <h3 class="text-lg font-medium text-gray-400">等待上传PCB图片</h3>
+      <p class="text-sm text-gray-600 mt-1 max-w-md mx-auto">
+        上传电路板实物照片，AI将自动识别元器件并检测焊接故障
+      </p>
+      <!-- 功能亮点 -->
+      <div class="flex flex-wrap justify-center gap-4 mt-6 text-xs text-gray-500">
+        <span class="flex items-center gap-1.5"><i class="fa-solid fa-check-circle text-emerald-500"></i> 元器件识别</span>
+        <span class="flex items-center gap-1.5"><i class="fa-solid fa-check-circle text-emerald-500"></i> 焊接缺陷检测</span>
+        <span class="flex items-center gap-1.5"><i class="fa-solid fa-check-circle text-emerald-500"></i> 故障定位</span>
+        <span class="flex items-center gap-1.5"><i class="fa-solid fa-check-circle text-emerald-500"></i> 维修指南</span>
+        <span class="flex items-center gap-1.5"><i class="fa-solid fa-check-circle text-emerald-500"></i> 一键导出</span>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- ============================================================ -->
+  <!-- 页脚 -->
+  <!-- ============================================================ -->
+  <footer class="relative z-10 border-t border-white/5 mt-12 py-6">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center text-xs text-gray-600">
+      <p>CircuitVision Debugger — AI-Powered PCB Visual Inspection System</p>
+      <p class="mt-1">© 2026 · 开源项目 · MIT License</p>
+    </div>
+  </footer>
+
+  <!-- ============================================================ -->
+  <!-- API 配置模态框 -->
+  <!-- ============================================================ -->
+  <div id="settings-modal" class="modal-overlay hidden">
+    <div class="modal-content max-w-lg">
+      <div class="flex items-center justify-between mb-6">
+        <h3 class="text-lg font-bold text-white flex items-center gap-2">
+          <i class="fa-solid fa-sliders text-accent"></i>
+          AI 服务配置
+        </h3>
+        <button class="modal-close text-gray-500 hover:text-white transition-colors">
+          <i class="fa-solid fa-xmark text-xl"></i>
+        </button>
+      </div>
+
+      <!-- 模式选择 -->
+      <div class="mb-5">
+        <label class="block text-sm font-medium text-gray-300 mb-2">检测模式</label>
+        <div class="flex gap-2">
+          <button class="mode-btn active" data-mode="mock">
+            <i class="fa-solid fa-robot"></i>
+            <span>内置模拟引擎</span>
+          </button>
+          <button class="mode-btn" data-mode="api">
+            <i class="fa-solid fa-cloud"></i>
+            <span>外部 API</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- API 设置 -->
+      <div id="api-settings" class="space-y-4 hidden">
+        <div>
+          <label class="block text-sm font-medium text-gray-300 mb-1.5">API 类型</label>
+          <select id="api-type" class="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-gray-200 focus:border-accent focus:ring-1 focus:ring-accent/50 outline-none transition-colors">
+            <option value="openai">OpenAI GPT-4o Vision</option>
+            <option value="qwen">通义千问 VL (Qwen-VL)</option>
+            <option value="glm">智谱GLM-4V</option>
+            <option value="custom">自定义 OpenAI 兼容接口</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-300 mb-1.5">API Endpoint</label>
+          <input type="url" id="api-endpoint" class="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-gray-200 focus:border-accent focus:ring-1 focus:ring-accent/50 outline-none transition-colors"
+            placeholder="https://api.openai.com/v1/chat/completions">
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-300 mb-1.5">API Key</label>
+          <div class="relative">
+            <input type="password" id="api-key" class="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-gray-200 focus:border-accent focus:ring-1 focus:ring-accent/50 outline-none transition-colors pr-10"
+              placeholder="sk-...">
+            <button id="toggle-api-key" class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-300">
+              <i class="fa-solid fa-eye"></i>
+            </button>
+          </div>
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-300 mb-1.5">模型名称</label>
+          <input type="text" id="api-model" class="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-gray-200 focus:border-accent focus:ring-1 focus:ring-accent/50 outline-none transition-colors"
+            value="gpt-4o" placeholder="gpt-4o / qwen-vl-plus / glm-4v">
+        </div>
+        <div class="flex gap-3">
+          <div class="flex-1">
+            <label class="block text-sm font-medium text-gray-300 mb-1.5">温度</label>
+            <input type="number" id="api-temperature" class="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-gray-200 focus:border-accent focus:ring-1 focus:ring-accent/50 outline-none transition-colors"
+              value="0.1" min="0" max="2" step="0.1">
+          </div>
+          <div class="flex-1">
+            <label class="block text-sm font-medium text-gray-300 mb-1.5">最大Token</label>
+            <input type="number" id="api-max-tokens" class="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-gray-200 focus:border-accent focus:ring-1 focus:ring-accent/50 outline-none transition-colors"
+              value="4096" min="256" max="8192" step="256">
+          </div>
+        </div>
+        <button id="btn-test-api" class="w-full py-2.5 rounded-xl border border-slate-700 text-sm text-gray-300 hover:border-accent/50 hover:text-accent transition-all duration-200">
+          <i class="fa-solid fa-vial mr-1.5"></i>测试连接
+        </button>
+      </div>
+
+      <div id="mock-settings" class="text-sm text-gray-500 bg-slate-800/50 rounded-xl p-4">
+        <i class="fa-solid fa-info-circle mr-1.5 text-accent"></i>
+        内置模拟引擎使用预置的检测算法模拟AI分析结果，适合演示和测试。连接外部API可获得更精准的检测效果。
+      </div>
+
+      <div class="flex gap-3 mt-6 pt-4 border-t border-slate-800">
+        <button id="btn-save-settings" class="flex-1 py-2.5 rounded-xl bg-gradient-to-r from-accent to-cyber text-white text-sm font-semibold shadow-lg shadow-accent/20 hover:shadow-accent/40 transition-all duration-300">
+          <i class="fa-solid fa-check mr-1.5"></i>保存配置
+        </button>
+        <button class="modal-close flex-1 py-2.5 rounded-xl bg-slate-800 text-gray-300 text-sm hover:bg-slate-700 transition-all duration-200">
+          取消
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================================ -->
+  <!-- 关于/项目介绍 模态框 -->
+  <!-- ============================================================ -->
+  <div id="about-modal" class="modal-overlay hidden">
+    <div class="modal-content max-w-2xl">
+      <div class="flex items-center justify-between mb-6">
+        <h3 class="text-lg font-bold text-white flex items-center gap-2">
+          <i class="fa-solid fa-microchip text-accent"></i>
+          CircuitVision Debugger
+        </h3>
+        <button class="modal-close text-gray-500 hover:text-white transition-colors">
+          <i class="fa-solid fa-xmark text-xl"></i>
+        </button>
+      </div>
+      <div class="space-y-4 text-sm text-gray-300 leading-relaxed">
+        <p>
+          <strong class="text-white">CircuitVision Debugger</strong> 是一款面向电子、电气、通信工程学生与硬件工程师的
+          <strong class="text-accent">AI 智能PCB故障检测与诊断工具</strong>。
+        </p>
+        <p>用户上传PCB电路板实拍照片，通过AI视觉技术自动完成：</p>
+        <ul class="space-y-2 pl-4">
+          <li class="flex items-start gap-2"><i class="fa-solid fa-microchip text-accent mt-1"></i><span><strong>元器件识别</strong> — 自动识别电阻、电容、二极管、芯片、接插件等各类元器件</span></li>
+          <li class="flex items-start gap-2"><i class="fa-solid fa-triangle-exclamation text-red-400 mt-1"></i><span><strong>缺陷检测</strong> — 检测极性接反、错贴、虚焊、短路、偏移立碑等常见焊接缺陷</span></li>
+          <li class="flex items-start gap-2"><i class="fa-solid fa-wrench text-amber-400 mt-1"></i><span><strong>维修指导</strong> — 自动生成故障排查步骤与返修整改建议</span></li>
+          <li class="flex items-start gap-2"><i class="fa-solid fa-download text-emerald-400 mt-1"></i><span><strong>报告导出</strong> — 一键导出检测报告（JSON / CSV / HTML）</span></li>
+        </ul>
+        <div class="mt-4 p-4 rounded-xl bg-slate-800/50 border border-slate-700/50">
+          <p class="font-medium text-white mb-2">技术架构</p>
+          <p class="text-gray-400">前端: HTML + Tailwind CSS + Vanilla JS &nbsp;|&nbsp; AI: YOLO + 多模态大模型方案 &nbsp;|&nbsp; 支持开源模型/商业API混合调用</p>
+        </div>
+        <p class="text-gray-500 text-xs">版本 1.0.0 · 开源项目 · MIT License</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================================ -->
+  <!-- JavaScript 文件 -->
+  <!-- ============================================================ -->
+  <script src="js/ai-service.js"></script>
+  <script src="js/export.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
